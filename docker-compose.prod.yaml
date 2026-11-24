@@ -1,0 +1,47 @@
+name: repair
+
+services:
+  db:
+    image: mysql:8.4
+    container_name: repair-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-proot"]
+      interval: 5s
+      retries: 30
+
+  backend:
+    image: localhost:5000/repair-backend:latest
+    container_name: repair-backend
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: repairdb
+      JWT_SECRET: mysecret123
+    ports:
+      - "3000:3000"
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    image: localhost:5000/repair-frontend:latest
+    container_name: repair-frontend
+    restart: unless-stopped
+    ports:
+      - "8082:80"
+
+volumes:
+  dbdata:
+  uploads:
